@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Sismógrafo Simulado</title>
+  <style>
+    body {
+      background-color: #101820;
+      color: #E0E0E0;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    canvas {
+      background: #000;
+      border: 2px solid #0f0;
+      display: block;
+      margin: 20px auto;
+    }
+    h1 { color: #0f0; }
+    #activarSensores {
+      margin: 10px;
+      padding: 12px 24px;
+      font-size: 1em;
+      background: #0f0;
+      color: #101820;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sismógrafo Móvil</h1>
+  <p>Mueve o agita tu dispositivo para simular un sismo.</p>
+  <button id="activarSensores">Activar sensores de movimiento</button>
+  <canvas id="sismografo" width="800" height="300"></canvas>
+
+  <script>
+    const canvas = document.getElementById('sismografo');
+    const ctx = canvas.getContext('2d');
+    let x = 0;
+    let baseY = canvas.height / 2;
+    let amplitud = 0;
+
+    function dibujarLinea(y) {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#0f0";
+      ctx.beginPath();
+      ctx.moveTo(0, baseY);
+      for (let i = 0; i < canvas.width; i++) {
+        let offset = amplitud * Math.sin((i + x) * 0.1);
+        ctx.lineTo(i, baseY + offset);
+      }
+      ctx.stroke();
+      x += 4;
+    }
+
+    function moverSismografo(event) {
+      const ax = event.acceleration.x || 0;
+      const ay = event.acceleration.y || 0;
+      const az = event.acceleration.z || 0;
+      let fuerza = Math.sqrt(ax*ax + ay*ay + az*az);
+      amplitud = Math.min(fuerza * 5, 100);
+    }
+
+    // Pedir permiso y activar sensores:
+    const boton = document.getElementById('activarSensores');
+    boton.addEventListener('click', function() {
+      if (typeof DeviceMotionEvent !== 'undefined' && 
+          typeof DeviceMotionEvent.requestPermission === 'function') {
+        DeviceMotionEvent.requestPermission()
+          .then(response => {
+            if (response === 'granted') {
+              window.addEventListener('devicemotion', moverSismografo);
+              boton.style.display = 'none';
+            } else {
+              alert('Permiso denegado.');
+            }
+          })
+          .catch(console.error);
+      } else {
+        // Android y navegadores que no lo requieren
+        window.addEventListener('devicemotion', moverSismografo);
+        boton.style.display = 'none';
+      }
+    });
+
+    function animar() {
+      dibujarLinea(baseY);
+      requestAnimationFrame(animar);
+    }
+    animar();
+  </script>
+</body>
+</html>
